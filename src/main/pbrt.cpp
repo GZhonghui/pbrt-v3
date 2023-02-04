@@ -72,6 +72,7 @@ Reformatting options:
     exit(msg ? 1 : 0);
 }
 
+// 程序入口
 // main program
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging(argv[0]);
@@ -81,16 +82,21 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> filenames;
     // Process command-line arguments
     for (int i = 1; i < argc; ++i) {
+        // 使用的线程数量
         if (!strcmp(argv[i], "--nthreads") || !strcmp(argv[i], "-nthreads")) {
             if (i + 1 == argc)
                 usage("missing value after --nthreads argument");
+            // atoi 转换为数字
             options.nThreads = atoi(argv[++i]);
+        // 使用的线程数量
         } else if (!strncmp(argv[i], "--nthreads=", 11)) {
             options.nThreads = atoi(&argv[i][11]);
+        // 输出的文件
         } else if (!strcmp(argv[i], "--outfile") || !strcmp(argv[i], "-outfile")) {
             if (i + 1 == argc)
                 usage("missing value after --outfile argument");
             options.imageFile = argv[++i];
+        // 窗口范围裁切
         } else if (!strcmp(argv[i], "--cropwindow") || !strcmp(argv[i], "-cropwindow")) {
             if (i + 4 >= argc)
                 usage("missing value after --cropwindow argument");
@@ -98,25 +104,31 @@ int main(int argc, char *argv[]) {
             options.cropWindow[0][1] = atof(argv[++i]);
             options.cropWindow[1][0] = atof(argv[++i]);
             options.cropWindow[1][1] = atof(argv[++i]);
+        // 输出的文件
         } else if (!strncmp(argv[i], "--outfile=", 10)) {
             options.imageFile = &argv[i][10];
+        // 日志路径
         } else if (!strcmp(argv[i], "--logdir") || !strcmp(argv[i], "-logdir")) {
             if (i + 1 == argc)
                 usage("missing value after --logdir argument");
             FLAGS_log_dir = argv[++i];
+        // 日志路径
         } else if (!strncmp(argv[i], "--logdir=", 9)) {
             FLAGS_log_dir = &argv[i][9];
+        // 设定日志等级
         } else if (!strcmp(argv[i], "--minloglevel") ||
                    !strcmp(argv[i], "-minloglevel")) {
             if (i + 1 == argc)
                 usage("missing value after --minloglevel argument");
             FLAGS_minloglevel = atoi(argv[++i]);
+        // 设定日志等级
         } else if (!strncmp(argv[i], "--minloglevel=", 14)) {
             FLAGS_minloglevel = atoi(&argv[i][14]);
         } else if (!strcmp(argv[i], "--quick") || !strcmp(argv[i], "-quick")) {
             options.quickRender = true;
         } else if (!strcmp(argv[i], "--quiet") || !strcmp(argv[i], "-quiet")) {
             options.quiet = true;
+        // 待验证，这是从上一次的结果开始，继续渲染吗？
         } else if (!strcmp(argv[i], "--cat") || !strcmp(argv[i], "-cat")) {
             options.cat = true;
         } else if (!strcmp(argv[i], "--toply") || !strcmp(argv[i], "-toply")) {
@@ -128,8 +140,10 @@ int main(int argc, char *argv[]) {
         } else if (!strncmp(argv[i], "--v=", 4)) {
           FLAGS_v = atoi(argv[i] + 4);
         }
+        // 输出日志到stderr
         else if (!strcmp(argv[i], "--logtostderr")) {
           FLAGS_logtostderr = true;
+        // 帮助
         } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-help") ||
                    !strcmp(argv[i], "-h")) {
             usage();
@@ -166,6 +180,9 @@ int main(int argc, char *argv[]) {
         pbrtParseFile("-");
     } else {
         // Parse scene from input files
+        // 可能有多个输入文件
+        // 没有明显的Render函数
+        // 所以，解析完文件后自动开始Render吗？
         for (const std::string &f : filenames)
             pbrtParseFile(f);
     }

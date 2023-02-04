@@ -30,6 +30,7 @@
 
  */
 
+// 在VS上编译，需要这个宏，NOMINMAX，微软真的是，我服了
 #if defined(_MSC_VER)
 #define NOMINMAX
 #pragma once
@@ -43,6 +44,7 @@
 
 namespace pbrt {
 
+// 声明一些API函数
 // API Function Declarations
 void pbrtInit(const Options &opt);
 void pbrtCleanup();
