@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
     // Process scene description
     if (filenames.empty()) {
         // Parse scene from standard input
+        // 从标准输入获取文件位置
         pbrtParseFile("-");
     } else {
         // Parse scene from input files

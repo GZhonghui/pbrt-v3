@@ -1092,6 +1092,9 @@ static void parse(std::unique_ptr<Tokenizer> t) {
 }
 
 void pbrtParseFile(std::string filename) {
+    // 如果是一个文件，就将引擎的搜索路径设定为，文件所在的路径，就可以用来查找依赖的子文件了
+    // SetSearchDirectory 设定引擎的搜索路径
+    // DirectoryContaining 获取文件所在的路径，根据系统的不同，实现是不同的
     if (filename != "-") SetSearchDirectory(DirectoryContaining(filename));
 
     auto tokError = [](const char *msg) { Error("%s", msg); exit(1); };
