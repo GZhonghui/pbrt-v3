@@ -154,6 +154,7 @@ class VisibilityTester;
 class AreaLight;
 struct Distribution1D;
 class Distribution2D;
+// 全局控制浮点数的精度，但是也有些地方，强制使用了32位或64位精度的浮点数
 #ifdef PBRT_FLOAT_AS_DOUBLE
   typedef double Float;
 #else
@@ -300,6 +301,7 @@ inline Float InverseGammaCorrect(Float value) {
     return std::pow((value + 0.055f) * 1.f / 1.055f, (Float)2.4f);
 }
 
+// 范围限制
 template <typename T, typename U, typename V>
 inline T Clamp(T val, U low, V high) {
     if (val < low)
@@ -310,36 +312,48 @@ inline T Clamp(T val, U low, V high) {
         return val;
 }
 
+// 自己实现的取余函数，保证结果一定是非负数
+// 为什么要求结果一定要是非负数？
 template <typename T>
 inline T Mod(T a, T b) {
     T result = a - (a / b) * b;
     return (T)((result < 0) ? result + b : result);
 }
 
+// 浮点数的取余
+// 注意，这是实例化了一个模板函数
 template <>
 inline Float Mod(Float a, Float b) {
     return std::fmod(a, b);
 }
 
+// 角度之间的相互转换
 inline Float Radians(Float deg) { return (Pi / 180) * deg; }
 
 inline Float Degrees(Float rad) { return (180 / Pi) * rad; }
 
+// 取对数，以2为底，计算更快
+// 其他底的对数计算，转换为以2为底的对数计算
 inline Float Log2(Float x) {
     const Float invLog2 = 1.442695040888963387004650940071;
     return std::log(x) * invLog2;
 }
 
+// 如果是对整数取对数，那么可以计算得更快
 inline int Log2Int(uint32_t v) {
 #if defined(PBRT_IS_MSVC)
     unsigned long lz = 0;
+    // 计算前导/后导0的长度
+    // Windows上是这个函数 _BitScanReverse
     if (_BitScanReverse(&lz, v)) return lz;
     return 0;
 #else
+    // G++/Clang上是这个函数 __builtin_clz
     return 31 - __builtin_clz(v);
 #endif
 }
 
+// 64位的计算，是相同的思路
 inline int Log2Int(int32_t v) { return Log2Int((uint32_t)v); }
 
 inline int Log2Int(uint64_t v) {
@@ -361,11 +375,13 @@ inline int Log2Int(uint64_t v) {
 
 inline int Log2Int(int64_t v) { return Log2Int((uint64_t)v); }
 
+// 判断是否是2的整数次幂
 template <typename T>
 inline PBRT_CONSTEXPR bool IsPowerOf2(T v) {
     return v && !(v & (v - 1));
 }
 
+// 向上取整到2的整数次幂
 inline int32_t RoundUpPow2(int32_t v) {
     v--;
     v |= v >> 1;
@@ -376,6 +392,7 @@ inline int32_t RoundUpPow2(int32_t v) {
     return v + 1;
 }
 
+// 看一下，64位的情况下，是哪里不同
 inline int64_t RoundUpPow2(int64_t v) {
     v--;
     v |= v >> 1;

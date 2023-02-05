@@ -40,6 +40,7 @@
 #include "medium.h"
 #include "stats.h"
 
+// 包含了这么多头文件
 // API Additional Headers
 #include "accelerators/bvh.h"
 #include "accelerators/kdtreeaccel.h"
