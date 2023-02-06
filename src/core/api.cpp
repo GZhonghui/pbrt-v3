@@ -1617,6 +1617,8 @@ void pbrtWorldEnd() {
         CHECK_EQ(CurrentProfilerState(), ProfToBits(Prof::SceneConstruction));
         ProfilerState = ProfToBits(Prof::IntegratorRender);
 
+        // 渲染在这里开始，需要构建好的场景和积分器
+        // 藏的这么深，在一个Token的解析函数里面，是不是有点不优雅
         if (scene && integrator) integrator->Render(*scene);
 
         CHECK_EQ(CurrentProfilerState(), ProfToBits(Prof::IntegratorRender));

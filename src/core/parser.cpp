@@ -65,6 +65,7 @@ static std::string toString(string_view s) {
     return std::string(s.data(), s.size());
 }
 
+// 待确认
 STAT_MEMORY_COUNTER("Memory/Tokenizer buffers", tokenizerMemory);
 
 static char decodeEscaped(int ch) {
@@ -95,6 +96,7 @@ static char decodeEscaped(int ch) {
     return 0;  // NOTREACHED
 }
 
+// 基本都是底层IO操作
 std::unique_ptr<Tokenizer> Tokenizer::CreateFromFile(
     const std::string &filename,
     std::function<void(const char *)> errorCallback) {
@@ -102,12 +104,17 @@ std::unique_ptr<Tokenizer> Tokenizer::CreateFromFile(
         // Handle stdin by slurping everything into a string.
         std::string str;
         int ch;
+        // 从标准输入读取文件名，之后调用的流程还是一样的
         while ((ch = getchar()) != EOF) str.push_back((char)ch);
+
+        // 两种方式创建
         // std::make_unique...
         return std::unique_ptr<Tokenizer>(
             new Tokenizer(std::move(str), std::move(errorCallback)));
+        // 待确认，构造函数和CreateFromFile所做的内容一样吗
     }
 
+// 待确认，在C++代码中没有定义这个宏，在CMake中提供了选项插入这个宏
 #ifdef PBRT_HAVE_MMAP
     int fd = open(filename.c_str(), O_RDONLY);
     if (fd == -1) {
@@ -135,9 +142,13 @@ std::unique_ptr<Tokenizer> Tokenizer::CreateFromFile(
     return std::unique_ptr<Tokenizer>(
         new Tokenizer(ptr, len, filename, std::move(errorCallback)));
 #elif defined(PBRT_IS_WINDOWS)
+    // 问，这样写错误处理，只是为了复用代码，缩减代码长度吗？
     auto errorReportLambda = [&errorCallback,
                               &filename]() -> std::unique_ptr<Tokenizer> {
+        // LPSTR是MSVC提供的一种类型，官方描述是：A pointer to a null-terminated string of 8-bit Windows (ANSI) characters.
+        // 是这样定义的：typedef CHAR *LPSTR;
         LPSTR messageBuffer = nullptr;
+        // FormatMessageA也是Windows提供的API
         FormatMessageA(
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
                 FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -151,6 +162,10 @@ std::unique_ptr<Tokenizer> Tokenizer::CreateFromFile(
         return nullptr;
     };
 
+    // CreateFileA也是Windows的API
+    // HANDLE应该是void指针
+    // DWORD是很常用的一种位枚举类型吧
+    // 关于DWORD，文档：A 32-bit unsigned integer. The range is 0 through 4294967295 decimal.
     HANDLE fileHandle =
         CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 0,
                     OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -176,6 +191,7 @@ std::unique_ptr<Tokenizer> Tokenizer::CreateFromFile(
         return errorReportLambda();
     }
 
+    // 一系列IO操作后，还是调用的构造函数
     return std::unique_ptr<Tokenizer>(
         new Tokenizer(ptr, len, filename, std::move(errorCallback)));
 #else
@@ -214,13 +230,16 @@ Tokenizer::Tokenizer(std::string str,
     tokenizerMemory += contents.size();
 }
 
+// 在Windows上根据文件路径读取场景文件，调用的是这个构造函数
 #if defined(PBRT_HAVE_MMAP) || defined(PBRT_IS_WINDOWS)
 Tokenizer::Tokenizer(void *ptr, size_t len, std::string filename,
                      std::function<void(const char *)> errorCallback)
-    : loc(filename),
+    : loc(filename), // loc类似文件指针
       errorCallback(std::move(errorCallback)),
+      // unmapPtr和unmapLength就是两个普通的成员变量
       unmapPtr(ptr),
       unmapLength(len) {
+    // 记录开始和结尾？
     pos = (const char *)ptr;
     end = pos + len;
 }
@@ -783,11 +802,14 @@ ParamSet parseParams(Next nextToken, Unget ungetToken, MemoryArena &arena,
 extern int catIndentCount;
 
 // Parsing Global Interface
+// 具体的文件内容解析的部分先跳过，先看过书之后再看代码
 static void parse(std::unique_ptr<Tokenizer> t) {
+    // Tokenizer可能有多个
     std::vector<std::unique_ptr<Tokenizer>> fileStack;
     fileStack.push_back(std::move(t));
     parserLoc = &fileStack.back()->loc;
 
+    // unget 解除，卸载
     bool ungetTokenSet = false;
     std::string ungetTokenValue;
 
@@ -842,18 +864,21 @@ static void parse(std::unique_ptr<Tokenizer> t) {
         SpectrumType spectrumType,
         std::function<void(const std::string &n, ParamSet p)> apiFunc) {
         string_view token = nextToken(TokenRequired);
-        string_view dequoted = dequoteString(token);
+        string_view dequoted = dequoteString(token); // quote 引述，引用
         std::string n = toString(dequoted);
         ParamSet params =
             parseParams(nextToken, ungetToken, arena, spectrumType);
         apiFunc(n, std::move(params));
     };
 
+    // 文件内容解析错误
     auto syntaxError = [&](string_view tok) {
         Error("Unexpected token: %s", toString(tok).c_str());
         exit(1);
     };
 
+    // 有点像Json？
+    // 有点编译器的感觉了
     while (true) {
         string_view tok = nextToken(TokenOptional);
         if (tok.empty()) break;
@@ -875,6 +900,7 @@ static void parse(std::unique_ptr<Tokenizer> t) {
                 else
                     syntaxError(tok);
             } else if (tok == "AreaLightSource")
+                // 这样的函数指针用的很多呢
                 basicParamListEntrypoint(SpectrumType::Illuminant,
                                          pbrtAreaLightSource);
             else if (tok == "Accelerator")
@@ -885,6 +911,7 @@ static void parse(std::unique_ptr<Tokenizer> t) {
             break;
 
         case 'C':
+            // Concat 并列，并行
             if (tok == "ConcatTransform") {
                 if (nextToken(TokenRequired) != "[") syntaxError(tok);
                 Float m[16];
@@ -1080,6 +1107,8 @@ static void parse(std::unique_ptr<Tokenizer> t) {
             if (tok == "WorldBegin")
                 pbrtWorldBegin();
             else if (tok == "WorldEnd")
+                // 在这里开始渲染
+                // 也就是说场景文件必须包含且仅包含一个WorldEnd喽
                 pbrtWorldEnd();
             else
                 syntaxError(tok);
@@ -1097,10 +1126,14 @@ void pbrtParseFile(std::string filename) {
     // DirectoryContaining 获取文件所在的路径，根据系统的不同，实现是不同的
     if (filename != "-") SetSearchDirectory(DirectoryContaining(filename));
 
+    // 为什么要使用这种Log方式，还要单独创建一个Lambda表达式，有什么特殊的好处吗？
     auto tokError = [](const char *msg) { Error("%s", msg); exit(1); };
+    // 应该并没有真正地解析文件，而是创建了Tokenizer
     std::unique_ptr<Tokenizer> t =
         Tokenizer::CreateFromFile(filename, tokError);
     if (!t) return;
+    // 解析文件内容
+    // 解析到WorldEnd的时候开始渲染
     parse(std::move(t));
 }
 

@@ -49,20 +49,28 @@
 namespace pbrt {
 
 // Loc represents a position in a file being parsed.
+// 用来记录文件的解析位置，相当于文件指针
 struct Loc {
     Loc() = default;
     Loc(const std::string &filename) : filename(filename) {}
 
     std::string filename;
+    // 记录行列
     int line = 1, column = 0;
 };
 
 // If not nullptr, stores the current file location of the parser.
+// 问，extern这样直接写在头文件里面好吗
 extern Loc *parserLoc;
 
 // Reimplement enough of absl/std::string_view as needed for the below
 // (Bringing on the abseil dependency at this point just for this seems
 // excessive.)
+// C++ 17是支持string_view的
+// C++中的string_view是为了实现：待确认
+// 为什么这里又重新实现了一遍呢
+// 一份完整的inline实现
+// excessive 过度的，过量的
 class string_view {
   public:
     string_view(const char *start, size_t size) : ptr(start), length(size) {}
@@ -99,6 +107,9 @@ class string_view {
     size_t length;
 };
 
+// 将一个场景文件转换为多个token
+// 问，token是干啥的
+// 可能是用于描述场景文件的一种语句单位
 // Tokenizer converts a single pbrt scene file into a series of tokens.
 class Tokenizer {
   public:
@@ -108,6 +119,7 @@ class Tokenizer {
     static std::unique_ptr<Tokenizer> CreateFromString(
         std::string str, std::function<void(const char *)> errorCallback);
 
+    // 析构函数的权限还是必须是public
     ~Tokenizer();
 
     // Returns an empty string_view at EOF. Note that the returned
@@ -116,8 +128,11 @@ class Tokenizer {
 
     Loc loc;
 
+  // 将构造函数的权限设置为private，也就是说，必须从类内创建新对象
+  // 所以必须提供创建对象的，public并且static的成员函数
   private:
     Tokenizer(std::string str, std::function<void(const char *)> errorCallback);
+    // 另一个构造函数，在Windows上是有的
 #if defined(PBRT_HAVE_MMAP) || defined(PBRT_IS_WINDOWS)
     Tokenizer(void *ptr, size_t len, std::string filename,
               std::function<void(const char *)> errorCallback);

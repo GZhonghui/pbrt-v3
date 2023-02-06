@@ -67,6 +67,7 @@
 
 #if defined(_MSC_VER)
   #define PBRT_IS_MSVC
+  // 为什么只有这一个版本的MSVC才需要_snprintf
   #if _MSC_VER == 1800
     #define snprintf _snprintf
   #endif
@@ -78,6 +79,7 @@
 
 #include <stdint.h>
 #if defined(PBRT_IS_MSVC)
+// MSVC的特殊处理
 #include <float.h>
 #include <intrin.h>
 #pragma warning(disable : 4305)  // double constant assigned to float
@@ -88,14 +90,16 @@
 #endif
 
 // Global Macros
+// 这个宏不错
 #define ALLOCA(TYPE, COUNT) (TYPE *) alloca((COUNT) * sizeof(TYPE))
 
 namespace pbrt {
 
 // Global Forward Declarations
+// 类提前声明
 class Scene;
-class Integrator;
-class SamplerIntegrator;
+class Integrator; // 积分器？
+class SamplerIntegrator; // 采样积分器？
 template <typename T>
 class Vector2;
 template <typename T>
@@ -135,7 +139,8 @@ class Sampler;
 class Filter;
 class Film;
 class FilmTile;
-class BxDF;
+// BxDF系列
+class BxDF; // 定义在reflection.h
 class BRDF;
 class BTDF;
 class BSDF;
@@ -169,6 +174,7 @@ struct Matrix4x4;
 class ParamSet;
 template <typename T>
 struct ParamSetItem;
+// 渲染配置信息
 struct Options {
     Options() {
         cropWindow[0][0] = 0;
@@ -177,8 +183,8 @@ struct Options {
         cropWindow[1][1] = 1;
     }
     int nThreads = 0;
-    bool quickRender = false;
-    bool quiet = false;
+    bool quickRender = false; // 待确认
+    bool quiet = false; // 待确认
     bool cat = false, toPly = false;
     std::string imageFile;
     // x0, x1, y0, y1

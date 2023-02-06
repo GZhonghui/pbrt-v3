@@ -30,6 +30,7 @@
 
  */
 
+// 几乎在每个头文件里面都有这个宏
 #if defined(_MSC_VER)
 #define NOMINMAX
 #pragma once
