@@ -359,6 +359,7 @@ void TransformCache::Grow() {
 
 
 // API Static Data
+// 静态数据，没有外部链接性，只能在api.o里面访问
 enum class APIState { Uninitialized, OptionsBlock, WorldBlock };
 static APIState currentApiState = APIState::Uninitialized;
 static TransformSet curTransform;
@@ -399,6 +400,10 @@ std::vector<std::shared_ptr<Shape>> MakeShapes(const std::string &name,
             func);                                       \
         return;                                          \
     } else /* swallow trailing semicolon */
+// func是一个字符串，应该是代表函数名
+// 检查当前解析Token的状态机，是否在World块内部
+// 这样定义宏，最后跟一个else，是否安全？宏后面跟个分号就行了
+// 又学到一个小技巧，这就是swallow trailing semicolon
 #define VERIFY_WORLD(func)                                   \
     VERIFY_INITIALIZED(func);                                \
     if (!(PbrtOptions.cat || PbrtOptions.toPly) &&           \
@@ -1589,8 +1594,14 @@ void pbrtObjectInstance(const std::string &name) {
 }
 
 void pbrtWorldEnd() {
+    // 注意，这个宏后面跟了一个else，有点巧妙
+    // 如果需要跟逻辑，就可以直接写，或者加{}
+    // 如果不需要逻辑，就可以跟分号，像函数调用
+    // 写一点这样的宏做安全检查是挺不错的
     VERIFY_WORLD("WorldEnd");
     // Ensure there are no pushed graphics states
+    // Token没有成对，有的状态没有结束
+    // 这里为什么使用了vector而不是stack？
     while (pushedGraphicsStates.size()) {
         Warning("Missing end to pbrtAttributeBegin()");
         pushedGraphicsStates.pop_back();
@@ -1603,9 +1614,13 @@ void pbrtWorldEnd() {
 
     // Create scene and render
     if (PbrtOptions.cat || PbrtOptions.toPly) {
+        // 这个'%*s'占位符是干啥的，我见过有'%5d'这种
         printf("%*sWorldEnd\n", catIndentCount, "");
     } else {
+        // 准备开始渲染
+        // 创建积分器和相机
         std::unique_ptr<Integrator> integrator(renderOptions->MakeIntegrator());
+        // 构建场景和加速结构
         std::unique_ptr<Scene> scene(renderOptions->MakeScene());
 
         // This is kind of ugly; we directly override the current profiler
@@ -1614,13 +1629,16 @@ void pbrtWorldEnd() {
         // issue is that all the rest of the profiling system assumes
         // hierarchical inheritance of profiling state; this is the only
         // place where that isn't the case.
+        // CHECK_EQ是glog的一个宏
         CHECK_EQ(CurrentProfilerState(), ProfToBits(Prof::SceneConstruction));
         ProfilerState = ProfToBits(Prof::IntegratorRender);
 
         // 渲染在这里开始，需要构建好的场景和积分器
         // 藏的这么深，在一个Token的解析函数里面，是不是有点不优雅
+        // Render的参数是Scene的常引用
         if (scene && integrator) integrator->Render(*scene);
 
+        // 待确认，这两步是在干啥，渲染前后都执行了
         CHECK_EQ(CurrentProfilerState(), ProfToBits(Prof::IntegratorRender));
         ProfilerState = ProfToBits(Prof::SceneConstruction);
     }
